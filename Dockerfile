@@ -12,5 +12,4 @@ RUN poetry config virtualenvs.create false && poetry install --no-root
 
 COPY . .
 
-# Команда запуска
 CMD ["make", "run"]
