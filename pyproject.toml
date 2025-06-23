@@ -1,23 +1,21 @@
-[project]
+[tool.poetry]
 name = "bloggers-crm"
 version = "0.1.0"
 description = "Test project which connects bloggers and crm via ai assistant."
-authors = [
-    {name = "Gennadii Sotnikov",email = "gennady.sotnikov@vallettasoftware.com"}
-]
 readme = "README.md"
+authors = ["Your Name <you@example.com>"]
 requires-python = ">=3.11,<4.0"
-dependencies = [
-    "supabase (>=2.15.3,<3.0.0)",
-    "python-dotenv (>=1.1.0,<2.0.0)",
-    "pydantic (>=2.11.7,<3.0.0)",
-    "fastapi (>=0.115.13,<0.116.0)",
-    "httpx (>=0.28.1,<0.29.0)",
-    "openai (>=1.90.0,<2.0.0)",
-    "uvicorn (>=0.34.3,<0.35.0)"
-]
 
+[tool.poetry.dependencies]
+python = ">=3.11,<4.0"
+supabase = ">=2.15.3,<3.0.0"
+python-dotenv = ">=1.1.0,<2.0.0"
+pydantic = ">=2.11.7,<3.0.0"
+fastapi = ">=0.115.13,<0.116.0"
+httpx = ">=0.28.1,<0.29.0"
+openai = ">=1.90.0,<2.0.0"
+uvicorn = ">=0.34.3,<0.35.0"
 
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
+requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
