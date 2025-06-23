@@ -14,10 +14,6 @@ async def save_message(message: MessageIn):
     return response
 
 async def get_messages_page(chat_id: str, limit: int = 20, offset: int = 0) -> Dict[str, Any]:
-    # Получить сообщения по chat_id, отсортированные от новых к старым, с пагинацией
-    # "{'message': 'invalid input syntax for type uuid: \"manager\"', 'code': '22P02', 'hint': None, 'details': None}"
-    # print(f"Fetching messages for chat_id: {chat_id}, limit: {limit}, offset: {offset}")
-    # asd
     query = (
         supabase.table("messages")
         .select("*")
@@ -27,7 +23,6 @@ async def get_messages_page(chat_id: str, limit: int = 20, offset: int = 0) -> D
     )
     resp = await query.execute()
     messages: List[Dict[str, Any]] = resp.data if resp.data else []
-    # Получить общее количество сообщений в чате
     count_resp = await supabase.table("messages").select("id", count="exact").eq("chat_id", chat_id).execute()
     total_count = count_resp.count if hasattr(count_resp, "count") else len(messages)
     return {

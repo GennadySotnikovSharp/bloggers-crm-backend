@@ -19,7 +19,6 @@ async def init_user_connection(websocket: WebSocket, first_data: str):
         first_json = json.loads(first_data)
     except Exception:
         raise ValueError("Failed to parse initial data as JSON")
-    # print(f"Received initial data: {first_json}")
     token = first_json.get("access_token")
     if not token:
         raise ValueError("JWT is required")
@@ -36,19 +35,19 @@ async def init_user_connection(websocket: WebSocket, first_data: str):
         await send_welcome_message_if_needed(user.id)
 
 async def process_parser_and_update_deal(content: str, chat_id: str, thread_id: str):
-    print(f'process_parser_and_update_deal content: {content} chat_id: {chat_id} thread_id: {thread_id}')
+    
     # 1. Add user message to thread
     await create_user_message_in_thread(content, thread_id)
     # 2. Get parser assistant response
     parser_response = await process_assistant_response("parser", thread_id)
-    print(f"process_parser_and_update_deal. Parser response: {parser_response}")
+    
     # 3. Try to extract and parse fields from parser_response["content"]
     parsed_fields = None
     if parser_response and parser_response.get("content"):
         
         # Try to extract text from the content (OpenAI API returns a list of content blocks)
         content_blocks = parser_response["content"]
-        print(f"process_parser_and_update_deal. content_blocks: {content_blocks}")
+        
         if isinstance(content_blocks, list) and content_blocks:
             # Try to get the text value from the first block
             block = content_blocks[0]
@@ -62,11 +61,11 @@ async def process_parser_and_update_deal(content: str, chat_id: str, thread_id: 
                 value = str(block)
             try:
                 cleaned = value.strip().removeprefix("```json").removesuffix("```").strip()
-                print('cleaned = ', cleaned)
+                
                 parsed_fields = json.loads(cleaned)
             except Exception:
                 parsed_fields = None
-    print("!!!!process_parser_and_update_deal parsed_fields = ", parsed_fields)
+    
     if parsed_fields:
         deal_data = DealData(
             chat_id=chat_id,
@@ -114,8 +113,8 @@ async def handle_chat_message(websocket: WebSocket, data_json: dict):
     assistant_response = await process_assistant_response("manager", thread_id)
     content = assistant_response.get("content")
     text_value = content[0].text.value
-    # print(f"Assistant response content: {content}")
-    # print(f"Assistant response value: ", content.text.value)
+    
+    
     message_in_from_llm = MessageIn(
         chat_id=chat["id"],
         sender="manager",
@@ -124,7 +123,7 @@ async def handle_chat_message(websocket: WebSocket, data_json: dict):
         created_at=datetime.utcnow().isoformat()
     )
     await save_and_send_message(message_in_from_llm, websocket)
-    # print(f"finish handle_chat_message")
+    
 
 
 async def handle_get_deals(websocket: WebSocket):
@@ -133,18 +132,18 @@ async def handle_get_deals(websocket: WebSocket):
 
 async def handle_get_existing_messages(websocket: WebSocket, data_json: dict):
     user_id = manager.get_user_id(websocket)
-    # print(f"!!!handle_get_existing_messages data_json: {data_json} user_id: {user_id}")
+    
     if not user_id:
         raise ValueError("User not authenticated")
     chat = await get_chat(user_id)
 
-    # print(f"!!!handle_get_existing_messages Found chat {chat}")
+    
 
     limit = data_json.get("limit", 20)
     offset = data_json.get("offset", 0)
-    # print(f"!!!handle_get_existing_messages Fetching existing messages for chat_id: {chat['id']}, limit: {limit}, offset: {offset}")
+    
     page = await get_messages_page(chat["id"], limit=limit, offset=offset)
-    # print(f"!!!handle_get_existing_messages Messages page for chat {chat['id']}: {page}")
+    
     await manager.send_personal_message(json.dumps({
         "type": "messages_page",
         "messages": page["messages"],
@@ -153,7 +152,7 @@ async def handle_get_existing_messages(websocket: WebSocket, data_json: dict):
         "offset": offset,
         "chat_id": chat["id"]
     }), websocket)
-    # print(f"!!!finish handle_get_existing_messages")
+    
 
 async def handle_incoming_message(websocket: WebSocket, data: str):
     data_json = json.loads(data)
@@ -163,9 +162,7 @@ async def handle_incoming_message(websocket: WebSocket, data: str):
     elif msg_type == "get_deals":
         await handle_get_deals(websocket)
     elif msg_type == "get_existing_messages":
-        print("!!! msg_type == get_existing_messages")
         await handle_get_existing_messages(websocket, data_json)
-        print("!!! msg_type == get_existing_messages finish")
     else:
         await manager.send_personal_message(json.dumps({"error": "Unknown message type"}), websocket)
 
@@ -186,7 +183,7 @@ async def websocket_endpoint(websocket: WebSocket):
             pass
         except Exception as e:
             try:
-                print("exception handling")
+                
                 data = await websocket.receive_text()
                 data_json = json.loads(data)
                 msg_type = data_json.get("type")

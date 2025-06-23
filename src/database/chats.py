@@ -3,7 +3,6 @@ from database.db_connection import supabase
 async def get_chat(blogger_id: str) -> dict:
     resp = await supabase.table("chats").select("*").eq("blogger_id", blogger_id).maybe_single().execute()
     if resp is not None and resp.data:
-        # print(f"Found existing chat for blogger_id {blogger_id}: {resp.data}")
         return resp.data
     return None
 

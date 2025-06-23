@@ -14,7 +14,6 @@ class ConnectionManager:
         self.active_connections = [conn for conn in self.active_connections if conn["ws"] != websocket]
 
     async def send_personal_message(self, message: str, websocket: WebSocket):
-        # print(f"!!! Sending personal message to websocket: {message}")
         await websocket.send_text(message)
 
     async def send_to_all_marketers(self, message: str):

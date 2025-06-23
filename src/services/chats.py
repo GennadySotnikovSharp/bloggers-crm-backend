@@ -27,19 +27,14 @@ async def get_or_create_chat_with_thread(blogger_id: str):
         thread_id = await create_openai_thread()
         parser_thread_id = await create_openai_thread()
         chat = await create_chat_with_thread(blogger_id, thread_id, parser_thread_id)
-    # print("get_or_create_chat_with_thread finish")
     return chat
 
 async def send_welcome_message_if_needed(blogger_id):
-    # # print(f"Sending welcome message for blogger_id: {blogger_id}")
     if not blogger_id:
         raise ValueError("blogger_id is required to create or get chat")
     chat = await get_or_create_chat_with_thread(blogger_id)
     chat_id = chat["id"]
     thread_id = chat.get("openai_thread_id")
-    # # print(f"send_welcome_message_if_needed Fetching existing messages for chat_id: {chat_id}")
     page = await get_messages_page(chat_id, limit=1, offset=0)
-    # # print(f"Messages page for chat {chat_id}: {page}")
     if page["total_count"] == 0:
         await create_welcome_message(chat_id, thread_id)
-    # # print(f"send_welcome_message_if_needed finish")   

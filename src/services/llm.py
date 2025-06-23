@@ -92,29 +92,20 @@ async def process_assistant_response(assistant: Literal["manager", "parser"], th
     """
     Run the assistant on the thread and return the assistant's message instance.
     """
-    try:
-        assistant_id = await assistant_cache.get_assistant_id(assistant)
-        run = await openai_client.beta.threads.runs.create(
-            thread_id=thread_id,
-            assistant_id=assistant_id
-        )
-        await wait_for_run_complete(thread_id, run.id)
-        # print(f"OpenAI run result (process_robert_response): {run}")
-        # await wait_for_run_complete(thread_id, run.id)
-        # Get latest assistant message
-        messages = await openai_client.beta.threads.messages.list(thread_id=thread_id, limit=20)
-        for msg in messages.data:
-            if getattr(msg, "role", None) == "assistant":
-                return {
-                    "id": msg.id,
-                    "role": msg.role,
-                    "content": msg.content,
-                    "created_at": getattr(msg, "created_at", None)
-                }
-        return {}
-    except asyncio.TimeoutError:
-        # print("OpenAI run call (process_robert_response) timed out")
-        raise
-    except Exception as e:
-        # print(f"Exception during OpenAI run creation (process_robert_response): {e}")
-        raise
+    assistant_id = await assistant_cache.get_assistant_id(assistant)
+    run = await openai_client.beta.threads.runs.create(
+        thread_id=thread_id,
+        assistant_id=assistant_id
+    )
+    await wait_for_run_complete(thread_id, run.id)
+    # Get latest assistant message
+    messages = await openai_client.beta.threads.messages.list(thread_id=thread_id, limit=20)
+    for msg in messages.data:
+        if getattr(msg, "role", None) == "assistant":
+            return {
+                "id": msg.id,
+                "role": msg.role,
+                "content": msg.content,
+                "created_at": getattr(msg, "created_at", None)
+            }
+    return {}

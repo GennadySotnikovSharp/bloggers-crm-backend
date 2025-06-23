@@ -40,13 +40,9 @@ class AssistantCache:
 
             cached = next((a for a in self.cache if a["name"] == assistant_name_str and a["version"] == assistant_version), None)
             if cached:
-                # print(f"Found cached {assistant_name_str} assistant: {cached['id']}")
                 return cached["id"]
-
             latest_assistant = await find_latest_assistant_by_type(self.openai_client, assistant_name_str, assistant_version)
-            if latest_assistant:
-                print(f"Found existing {assistant_name_str} assistant: {latest_assistant.id}")
-            else:
+            if not latest_assistant:
                 latest_assistant = await create_assistant_with_metadata(
                     self.openai_client,
                     f"{assistant_name_str} v{assistant_version}",
@@ -96,5 +92,5 @@ async def create_assistant_with_metadata(
         temperature=temperature,
         metadata=metadata
     )
-    # print(f"Created assistant {assistant.id} with metadata: {metadata}")
+    
     return assistant
