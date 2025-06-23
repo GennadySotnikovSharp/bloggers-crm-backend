@@ -1,4 +1,4 @@
-from src.services.database import supabase
+from database.db_connection import supabase
 
 async def get_user_by_jwt(jwt: str):
     if not jwt:

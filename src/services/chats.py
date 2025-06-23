@@ -1,27 +1,64 @@
-from src.services.database import supabase
+from schemas import MessageIn
+from database.chats import create_chat_with_thread, get_or_create_chat
+from database.messages import get_messages_page, save_message
+from services.llm import create_openai_thread, send_welcome_text_to_thread
+import datetime
 
-async def get_or_create_chat(blogger_id: str) -> dict:
-    resp = await supabase.table("chats").select("*").eq("blogger_id", blogger_id).maybe_single().execute()
-    if resp is not None and resp.data:
-        # print(f"Found existing chat for blogger_id {blogger_id}: {resp.data}")
-        return resp.data
-    return None
 
-async def create_chat_with_thread(blogger_id: str, thread_id: str, parser_thread_id: str) -> dict:
-    data = {
-        "blogger_id": blogger_id,
-        "openai_thread_id": thread_id,
-        "parser_thread_id": parser_thread_id,
-    }
-    insert_resp = await supabase.table("chats").insert(data).execute()
-    return insert_resp.data if insert_resp is not None else None
+async def create_welcome_message(chat_id: str, thread_id: str):
+    welcome_text = (
+        "Hi! I'm Robert from InfluenceCRM 😊 Thanks for connecting. "
+        "Could you tell me how much you charge for a brand integration?"
+    )
+    created_at = datetime.utcnow().isoformat()
+    await save_message(
+        MessageIn(
+            chat_id=chat_id,
+            sender="manager",
+            content=welcome_text,
+            openai_message_id=None,
+            created_at=created_at
+        )
+    )
+    # # print(f"Welcome message saved for chat {chat_id}")
+    # await manager.send_personal_message(
+    #    json.dumps({
+    #        "type": "chat_message",
+    #        "chat_id": chat_id,
+    #        "sender": "manager",
+    #        "content": welcome_text,
+    #        "created_at": created_at
+    #    }),
+    #    websocket
+    #)
+    # print(f"Welcome message sent to websocket for chat {chat_id}")
+    await send_welcome_text_to_thread(welcome_text, thread_id)
 
-async def set_openai_thread_id(chat_id: str, thread_id: str):
-    await supabase.table("chats").update({"openai_thread_id": thread_id}).eq("id", chat_id).execute()
 
-async def set_parser_thread_id(chat_id: str, parser_thread_id: str):
-    await supabase.table("chats").update({"parser_thread_id": parser_thread_id}).eq("id", chat_id).execute()
+async def get_or_create_chat_with_thread(blogger_id: str):
+    chat = await get_or_create_chat(blogger_id)
+    if not chat:
+        thread_id = await create_openai_thread()
+        parser_thread_id = await create_openai_thread()
+        chat = await create_chat_with_thread(blogger_id, thread_id, parser_thread_id)
+    # print("get_or_create_chat_with_thread finish")
+    return chat
 
-async def get_parser_thread_id(chat_id: str) -> str:
-    resp = await supabase.table("chats").select("parser_thread_id").eq("id", chat_id).maybe_single().execute()
-    return resp.data.get("parser_thread_id") if resp is not None and resp.data else None
+async def send_welcome_message_if_needed(blogger_id):
+    # # print(f"Sending welcome message for blogger_id: {blogger_id}")
+    if not blogger_id:
+        raise ValueError("blogger_id is required to create or get chat")
+    print(1)
+    chat = await get_or_create_chat_with_thread(blogger_id)
+    print(2)
+    print("chat = ", chat)
+    chat_id = chat["id"]
+    print(3)
+    thread_id = chat.get("openai_thread_id")
+    # # print(f"send_welcome_message_if_needed Fetching existing messages for chat_id: {chat_id}")
+    page = await get_messages_page(chat_id, limit=1, offset=0)
+    print(4)
+    # # print(f"Messages page for chat {chat_id}: {page}")
+    if page["total_count"] == 0:
+        await create_welcome_message(chat_id, thread_id)
+    # # print(f"send_welcome_message_if_needed finish")   

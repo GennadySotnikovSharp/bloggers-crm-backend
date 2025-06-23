@@ -1,5 +1,5 @@
-from src.schemas import MessageIn
-from src.services.database import supabase
+from schemas import MessageIn
+from database.db_connection import supabase
 from typing import Dict, Any, List
 
 async def save_message(message: MessageIn):

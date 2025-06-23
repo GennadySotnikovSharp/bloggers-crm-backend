@@ -1,11 +1,18 @@
 from typing import Dict, Any, Literal
 import openai
-from src.services.assistant_cache import AssistantCache
-from src.services.env import get_env_var
+from services.assistant_cache import AssistantCache
+from services.env import get_env_var
 import asyncio
 
 openai_client = openai.AsyncOpenAI(api_key=get_env_var("OPENAI_API_KEY"))
 assistant_cache = AssistantCache(openai_client)
+
+async def send_welcome_text_to_thread(welcome_text: str, thread_id: str):
+    await openai_client.beta.threads.messages.create(
+        thread_id=thread_id,
+        role="assistant",
+        content=welcome_text
+    )
 
 async def wait_for_thread_free(thread_id: str, timeout: int = 30, poll_interval: float = 1.0):
     """
@@ -114,10 +121,3 @@ async def process_assistant_response(assistant: Literal["manager", "parser"], th
     except Exception as e:
         # print(f"Exception during OpenAI run creation (process_robert_response): {e}")
         raise
-
-async def send_welcome_text_to_thread(welcome_text: str, thread_id: str):
-    await openai_client.beta.threads.messages.create(
-        thread_id=thread_id,
-        role="assistant",
-        content=welcome_text
-    )

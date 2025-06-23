@@ -1,8 +1,8 @@
-from src.services.env import load_env
+from services.env import load_env
 load_env()
 
 from fastapi import FastAPI
-from src.websocket import router
+from services.websocket import router
 
 app = FastAPI()
 

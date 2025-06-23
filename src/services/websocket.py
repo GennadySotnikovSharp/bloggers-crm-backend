@@ -1,43 +1,16 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from typing import List, Dict, Any
-from src.services.users import get_user_by_jwt
-from src.services.saved_messages import save_message, get_messages_page
-from src.llm import create_openai_thread, create_user_message_in_thread, process_assistant_response, send_welcome_text_to_thread
-from src.schemas import MessageIn, DealData
-from src.services.deals import update_deal, get_all_deals
-from src.services.chats import get_or_create_chat, create_chat_with_thread
+from services.chats import send_welcome_message_if_needed
+from services.connection_manager import ConnectionManager
+from services.users import get_user_by_jwt
+from database.messages import save_message, get_messages_page
+from services.llm import create_openai_thread, create_user_message_in_thread, process_assistant_response, send_welcome_text_to_thread
+from schemas import MessageIn, DealData
+from database.deals import update_deal, get_all_deals
+from database.chats import get_or_create_chat, create_chat_with_thread
 import json
 from datetime import datetime
-import re
-
 
 router = APIRouter()
-
-class ConnectionManager:
-    def __init__(self):
-        self.active_connections: List[Dict[str, Any]] = []
-
-    async def connect(self, websocket: WebSocket):
-        await websocket.accept()
-        self.active_connections.append({"ws": websocket, "user_id": None, "role": None, "chat_id": None})
-
-    def disconnect(self, websocket: WebSocket):
-        self.active_connections = [conn for conn in self.active_connections if conn["ws"] != websocket]
-
-    async def send_personal_message(self, message: str, websocket: WebSocket):
-        # print(f"!!! Sending personal message to websocket: {message}")
-        await websocket.send_text(message)
-
-    async def send_to_all_marketers(self, message: str):
-        for conn in self.active_connections:
-            if conn["role"] == "marketer":
-                await conn["ws"].send_text(message)
-
-    def get_user_id(self, websocket: WebSocket):
-        for conn in self.active_connections:
-            if conn["ws"] == websocket:
-                return conn["user_id"]
-        return None
 
 manager = ConnectionManager()
 
@@ -52,7 +25,7 @@ async def init_user_connection(websocket: WebSocket, first_data: str):
         raise ValueError("JWT is required")
     user = await get_user_by_jwt(token)
     if not user:
-        raise ValueError("User not found in auth.users")
+        raise ValueError("User not found in auth.users")    
     role = user.user_metadata["role"]
     for conn in manager.active_connections:
         if conn["ws"] == websocket:
@@ -61,58 +34,6 @@ async def init_user_connection(websocket: WebSocket, first_data: str):
             break
     if role == "blogger":
         await send_welcome_message_if_needed(user.id)
-
-async def create_welcome_message(chat_id: str, thread_id: str):
-    welcome_text = (
-        "Hi! I'm Robert from InfluenceCRM 😊 Thanks for connecting. "
-        "Could you tell me how much you charge for a brand integration?"
-    )
-    created_at = datetime.utcnow().isoformat()
-    await save_message(
-        MessageIn(
-            chat_id=chat_id,
-            sender="manager",
-            content=welcome_text,
-            openai_message_id=None,
-            created_at=created_at
-        )
-    )
-    # # print(f"Welcome message saved for chat {chat_id}")
-    # await manager.send_personal_message(
-    #    json.dumps({
-    #        "type": "chat_message",
-    #        "chat_id": chat_id,
-    #        "sender": "manager",
-    #        "content": welcome_text,
-    #        "created_at": created_at
-    #    }),
-    #    websocket
-    #)
-    # print(f"Welcome message sent to websocket for chat {chat_id}")
-    await send_welcome_text_to_thread(welcome_text, thread_id)
-
-async def get_or_create_chat_with_thread(blogger_id: str):
-    chat = await get_or_create_chat(blogger_id)
-    if not chat:
-        thread_id = await create_openai_thread()
-        parser_thread_id = await create_openai_thread()
-        chat = await create_chat_with_thread(blogger_id, thread_id, parser_thread_id)
-    # print("get_or_create_chat_with_thread finish")
-    return chat
-
-async def send_welcome_message_if_needed(blogger_id):
-    # # print(f"Sending welcome message for blogger_id: {blogger_id}")
-    if not blogger_id:
-        raise ValueError("blogger_id is required to create or get chat")
-    chat = await get_or_create_chat_with_thread(blogger_id)
-    chat_id = chat["id"]
-    thread_id = chat.get("openai_thread_id")
-    # # print(f"send_welcome_message_if_needed Fetching existing messages for chat_id: {chat_id}")
-    page = await get_messages_page(chat_id, limit=1, offset=0)
-    # # print(f"Messages page for chat {chat_id}: {page}")
-    if page["total_count"] == 0:
-        await create_welcome_message(chat_id, thread_id)
-    # # print(f"send_welcome_message_if_needed finish")   
 
 async def process_parser_and_update_deal(content: str, chat_id: str, thread_id: str):
     print(f'process_parser_and_update_deal content: {content} chat_id: {chat_id} thread_id: {thread_id}')
@@ -240,7 +161,9 @@ async def handle_incoming_message(websocket: WebSocket, data: str):
     elif msg_type == "get_deals":
         await handle_get_deals(websocket)
     elif msg_type == "get_existing_messages":
+        print("!!! msg_type == get_existing_messages")
         await handle_get_existing_messages(websocket, data_json)
+        print("!!! msg_type == get_existing_messages finish")
     else:
         await manager.send_personal_message(json.dumps({"error": "Unknown message type"}), websocket)
 
@@ -261,6 +184,7 @@ async def websocket_endpoint(websocket: WebSocket):
             pass
         except Exception as e:
             try:
+                print("exception handling")
                 data = await websocket.receive_text()
                 data_json = json.loads(data)
                 msg_type = data_json.get("type")

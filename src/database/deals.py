@@ -1,5 +1,5 @@
-from src.services.database import supabase
-from src.schemas import DealData
+from database.db_connection import supabase
+from schemas import DealData
 
 async def update_deal(deal_data: DealData):
     try: 
