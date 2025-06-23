@@ -102,7 +102,7 @@ async def handle_chat_message(websocket: WebSocket, data_json: dict):
         chat_id=chat["id"],
         sender="user",
         content=content,
-        openai_message_id=user_message_in_thread.get("openai_message_id"),
+        openai_message_id=user_message_in_thread.get("id"),
         created_at=datetime.utcnow().isoformat()
     )
     await save_and_send_message(message_in_from_user, websocket)
