@@ -1,0 +1,7 @@
+app = "bloggers-crm-backend"
+
+[env]
+PORT = "8080"
+
+[experimental]
+auto_rollback = true
