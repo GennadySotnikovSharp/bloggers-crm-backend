@@ -112,13 +112,14 @@ async def handle_chat_message(websocket: WebSocket, data_json: dict):
         await manager.send_personal_message(json.dumps({"error": "Chat not found"}), websocket)
         return
     assistant_response = await process_assistant_response("manager", thread_id)
-    content = assistant_response.get("content")[0]
+    content = assistant_response.get("content")
+    text_value = content[0].text.value
     # print(f"Assistant response content: {content}")
     # print(f"Assistant response value: ", content.text.value)
     message_in_from_llm = MessageIn(
         chat_id=chat["id"],
         sender="manager",
-        content=content.text.value,
+        content=text_value,
         openai_message_id=assistant_response.get("id"),
         created_at=datetime.utcnow().isoformat()
     )

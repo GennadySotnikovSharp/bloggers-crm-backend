@@ -7,8 +7,8 @@ import asyncio
 openai_client = openai.AsyncOpenAI(api_key=get_env_var("OPENAI_API_KEY"))
 assistant_cache = AssistantCache(openai_client)
 
-async def send_welcome_text_to_thread(welcome_text: str, thread_id: str):
-    await openai_client.beta.threads.messages.create(
+def send_welcome_text_to_thread(welcome_text: str, thread_id: str):
+    return openai_client.beta.threads.messages.create(
         thread_id=thread_id,
         role="assistant",
         content=welcome_text
@@ -94,20 +94,17 @@ async def process_assistant_response(assistant: Literal["manager", "parser"], th
     """
     try:
         assistant_id = await assistant_cache.get_assistant_id(assistant)
-        run = await asyncio.wait_for(
-            openai_client.beta.threads.runs.create(
-                thread_id=thread_id,
-                assistant_id=assistant_id
-            ),
-            timeout=20
+        run = await openai_client.beta.threads.runs.create(
+            thread_id=thread_id,
+            assistant_id=assistant_id
         )
+        await wait_for_run_complete(thread_id, run.id)
         # print(f"OpenAI run result (process_robert_response): {run}")
         # await wait_for_run_complete(thread_id, run.id)
         # Get latest assistant message
         messages = await openai_client.beta.threads.messages.list(thread_id=thread_id, limit=20)
-        for msg in reversed(messages.data):
+        for msg in messages.data:
             if getattr(msg, "role", None) == "assistant":
-                print(f"process_assistant_response msg: {msg}")
                 return {
                     "id": msg.id,
                     "role": msg.role,

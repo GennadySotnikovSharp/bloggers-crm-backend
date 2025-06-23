@@ -4,36 +4,22 @@ from database.messages import get_messages_page, save_message
 from services.llm import create_openai_thread, send_welcome_text_to_thread
 from datetime import datetime
 
-
-async def create_welcome_message(chat_id: str, thread_id: str):
-    welcome_text = (
+welcome_text = (
         "Hi! I'm Robert from InfluenceCRM 😊 Thanks for connecting. "
         "Could you tell me how much you charge for a brand integration?"
-    )
-    created_at = datetime.utcnow().isoformat()
+)
+
+async def create_welcome_message(chat_id: str, thread_id: str):
+    message_in_thread = await send_welcome_text_to_thread(welcome_text, thread_id)
     await save_message(
         MessageIn(
             chat_id=chat_id,
             sender="manager",
             content=welcome_text,
-            openai_message_id=None,
-            created_at=created_at
+            openai_message_id=message_in_thread.id,
+            created_at=datetime.utcnow().isoformat()
         )
     )
-    # # print(f"Welcome message saved for chat {chat_id}")
-    # await manager.send_personal_message(
-    #    json.dumps({
-    #        "type": "chat_message",
-    #        "chat_id": chat_id,
-    #        "sender": "manager",
-    #        "content": welcome_text,
-    #        "created_at": created_at
-    #    }),
-    #    websocket
-    #)
-    # print(f"Welcome message sent to websocket for chat {chat_id}")
-    await send_welcome_text_to_thread(welcome_text, thread_id)
-
 
 async def get_or_create_chat_with_thread(blogger_id: str):
     chat = await get_chat(blogger_id)
