@@ -3,10 +3,10 @@ from services.chats import send_welcome_message_if_needed
 from services.connection_manager import ConnectionManager
 from services.users import get_user_by_jwt
 from database.messages import save_message, get_messages_page
-from services.llm import create_openai_thread, create_user_message_in_thread, process_assistant_response, send_welcome_text_to_thread
+from services.llm import create_user_message_in_thread, process_assistant_response
 from schemas import MessageIn, DealData
 from database.deals import update_deal, get_all_deals
-from database.chats import get_or_create_chat, create_chat_with_thread
+from database.chats import get_chat
 import json
 from datetime import datetime
 
@@ -93,7 +93,7 @@ async def handle_chat_message(websocket: WebSocket, data_json: dict):
     
     content = data_json.get("content")
     user_id = manager.get_user_id(websocket)
-    chat = await get_or_create_chat(user_id)
+    chat = await get_chat(user_id)
     thread_id = chat.get("openai_thread_id")
     parser_thread_id = chat.get("parser_thread_id")
     user_message_in_thread = await create_user_message_in_thread(content, thread_id)
@@ -135,7 +135,8 @@ async def handle_get_existing_messages(websocket: WebSocket, data_json: dict):
     # print(f"!!!handle_get_existing_messages data_json: {data_json} user_id: {user_id}")
     if not user_id:
         raise ValueError("User not authenticated")
-    chat = await get_or_create_chat(user_id)
+    chat = await get_chat(user_id)
+
     # print(f"!!!handle_get_existing_messages Found chat {chat}")
 
     limit = data_json.get("limit", 20)
