@@ -11,4 +11,6 @@ RUN poetry config virtualenvs.create false && poetry install --no-root
 
 COPY . .
 
-CMD ["PYTHONPATH=./src", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8080"]
+ENV PYTHONPATH=/app/src
+
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8080"]
